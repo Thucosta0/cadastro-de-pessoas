@@ -1,0 +1,19 @@
+# Arquivos de cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Configurações do banco de dados
+db_config.json
+
+# Ambiente virtual
+venv/
+env/
+ENV/
+
+# Arquivos de log
+*.log
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db 
