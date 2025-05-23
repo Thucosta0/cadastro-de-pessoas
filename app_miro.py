@@ -22,9 +22,9 @@ janelas_abertas = {}
 
 # Configurações do banco de dados (serão carregadas do arquivo config_db.json)
 config_db = {
-    "host": "127.0.0.1",
+    "host": "",
     "user": "root",
-    "password": "Thu3048#",
+    "password": "#",
     "database": "sistema_miro"
 }
 
