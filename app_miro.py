@@ -28,13 +28,7 @@ config_db = {
     "database": "sistema_miro"
 }
 
-# Texto explicativo sobre o propósito desta aplicação
-APP_DESCRICAO = """
-Este aplicativo (app_miro.py) é responsável APENAS pela conexão e utilização do banco de dados.
-Ele NÃO cria tabelas ou configura o banco de dados.
 
-Para criar e configurar o banco, use o utilitário 'configurar_db.py'.
-"""
 
 # Funções de utilidade
 def exibir_mensagem(titulo, mensagem):
@@ -1293,6 +1287,20 @@ def carregar_conteudo_funcionarios(frame):
         except Exception as e:
             exibir_erro("Erro", f"Erro ao excluir funcionário: {e}")
     
+    def editar_funcionario_selecionado():
+        selecionado = tv_funcionarios.selection()
+        if not selecionado:
+            exibir_erro("Erro", "Selecione um funcionário para editar")
+            return
+        
+        funcionario_id = tv_funcionarios.item(selecionado, "values")[0]
+        try:
+            funcionario_id = int(funcionario_id)
+            editar_funcionario(funcionario_id, tv_funcionarios)
+        except ValueError:
+            exibir_erro("Erro", "ID do funcionário inválido")
+    
+    menu_contexto.add_command(label="Editar", command=editar_funcionario_selecionado)
     menu_contexto.add_command(label="Excluir", command=excluir_funcionario)
     
     # Adicionar evento para atualização quando o tema for alterado
@@ -1706,6 +1714,20 @@ def carregar_conteudo_departamentos(frame):
         except Exception as e:
             exibir_erro("Erro", f"Erro ao excluir departamento: {e}")
     
+    def editar_departamento_selecionado():
+        selecionado = tv_departamentos.selection()
+        if not selecionado:
+            exibir_erro("Erro", "Selecione um departamento para editar")
+            return
+        
+        departamento_id = tv_departamentos.item(selecionado, "values")[0]
+        try:
+            departamento_id = int(departamento_id)
+            editar_departamento(departamento_id, tv_departamentos)
+        except ValueError:
+            exibir_erro("Erro", "ID do departamento inválido")
+    
+    menu_contexto.add_command(label="Editar", command=editar_departamento_selecionado)
     menu_contexto.add_command(label="Excluir", command=excluir_departamento)
     
     # Adicionar evento para atualização quando o tema for alterado
@@ -1836,7 +1858,7 @@ def iniciar_aplicacao():
             frame_erro,
             text=(
                 "O sistema não encontrou as tabelas necessárias no banco de dados.\n\n"
-                f"{APP_DESCRICAO}\n"
+
                 "Se você ainda não configurou a conexão com o MySQL, use o botão abaixo:"
             ),
             font=ctk.CTkFont(size=14),
@@ -2225,8 +2247,6 @@ def carregar_conteudo_usuarios(frame):
         except Exception as e:
             exibir_erro("Erro", f"Erro ao excluir usuário: {e}")
     
-    menu_contexto.add_command(label="Excluir", command=excluir_usuario)
-    
     def redefinir_senha():
         selecionado = tv_usuarios.selection()
         if not selecionado:
@@ -2264,16 +2284,674 @@ def carregar_conteudo_usuarios(frame):
         except Exception as e:
             exibir_erro("Erro", f"Erro ao redefinir senha: {e}")
     
+    def editar_usuario_selecionado():
+        selecionado = tv_usuarios.selection()
+        if not selecionado:
+            exibir_erro("Erro", "Selecione um usuário para editar")
+            return
+        
+        usuario_id = tv_usuarios.item(selecionado, "values")[0]
+        try:
+            usuario_id = int(usuario_id)
+            editar_usuario(usuario_id, tv_usuarios)
+        except ValueError:
+            exibir_erro("Erro", "ID do usuário inválido")
+    
+    menu_contexto.add_command(label="Editar", command=editar_usuario_selecionado)
+    menu_contexto.add_command(label="Excluir", command=excluir_usuario)
     menu_contexto.add_command(label="Redefinir Senha", command=redefinir_senha)
     
     # Adicionar evento para atualização quando o tema for alterado
     def atualizar_cores_tabela(event=None):
+        # Aplicar cores baseadas no tema atual
         if ctk.get_appearance_mode() == "Dark":
-            style.configure("Treeview", background="#2b2b2b", foreground="white", fieldbackground="#2b2b2b")
+            tv_usuarios.configure(
+                selectbackground="#1f538d",
+                selectforeground="white"
+            )
         else:
-            style.configure("Treeview", background="white", foreground="black", fieldbackground="white")
+            tv_usuarios.configure(
+                selectbackground="#4a98d3",
+                selectforeground="white"
+            )
     
     frame.bind("<Configure>", atualizar_cores_tabela)
+
+def editar_funcionario(funcionario_id, tv_funcionarios):
+    """
+    Abre uma janela para editar os dados de um funcionário específico.
+    
+    Args:
+        funcionario_id: ID do funcionário a ser editado
+        tv_funcionarios: TreeView para atualizar após a edição
+    """
+    global janelas_abertas
+    
+    # Verificar se já existe uma janela de edição aberta para este funcionário
+    chave_janela = f"editar_funcionario_{funcionario_id}"
+    if chave_janela in janelas_abertas and janelas_abertas[chave_janela].winfo_exists():
+        janelas_abertas[chave_janela].lift()
+        return
+    
+    # Buscar dados atuais do funcionário
+    try:
+        conexao = criar_conexao_mysql()
+        if not conexao:
+            exibir_erro("Erro", "Não foi possível conectar ao banco de dados")
+            return
+            
+        cursor = conexao.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT f.*, d.nome as departamento_nome 
+            FROM funcionarios f
+            LEFT JOIN departamentos d ON f.departamento_id = d.id
+            WHERE f.id = %s
+        """, (funcionario_id,))
+        
+        funcionario = cursor.fetchone()
+        if not funcionario:
+            exibir_erro("Erro", "Funcionário não encontrado")
+            return
+        
+        cursor.close()
+        conexao.close()
+    except Exception as e:
+        exibir_erro("Erro", f"Erro ao buscar dados do funcionário: {e}")
+        return
+    
+    # Criar janela de edição
+    janela_edicao = ctk.CTkToplevel()
+    janela_edicao.title(f"Editar Funcionário - {funcionario['nome']}")
+    janela_edicao.geometry("500x600")
+    centralizar_janela(janela_edicao, 500, 600)
+    janela_edicao.grab_set()
+    janela_edicao.attributes("-topmost", True)
+    
+    # Registrar a janela
+    janelas_abertas[chave_janela] = janela_edicao
+    
+    def ao_fechar_janela():
+        if chave_janela in janelas_abertas:
+            del janelas_abertas[chave_janela]
+        janela_edicao.destroy()
+    
+    janela_edicao.protocol("WM_DELETE_WINDOW", ao_fechar_janela)
+    
+    # Frame principal
+    frame = ctk.CTkFrame(janela_edicao)
+    frame.pack(padx=20, pady=20, fill="both", expand=True)
+    
+    # Título
+    lbl_titulo = ctk.CTkLabel(
+        frame,
+        text="Editar Funcionário",
+        font=ctk.CTkFont(size=18, weight="bold"),
+        text_color=("#4a98d3", "#1f538d")
+    )
+    lbl_titulo.pack(pady=(20, 20))
+    
+    # Campos de edição
+    # Nome
+    lbl_nome = ctk.CTkLabel(frame, text="Nome:")
+    lbl_nome.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_nome = ctk.CTkEntry(frame, width=400)
+    txt_nome.insert(0, funcionario['nome'])
+    txt_nome.pack(padx=20, pady=(0, 10))
+    
+    # Email
+    lbl_email = ctk.CTkLabel(frame, text="Email:")
+    lbl_email.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_email = ctk.CTkEntry(frame, width=400)
+    txt_email.insert(0, funcionario['email'])
+    txt_email.pack(padx=20, pady=(0, 10))
+    
+    # Data de Nascimento
+    lbl_data_nascimento = ctk.CTkLabel(frame, text="Data de Nascimento (DD/MM/AAAA):")
+    lbl_data_nascimento.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_data_nascimento = ctk.CTkEntry(frame, width=400)
+    txt_data_nascimento.insert(0, converter_data_para_exibicao(funcionario['data_nascimento']))
+    txt_data_nascimento.pack(padx=20, pady=(0, 10))
+    
+    # Cargo
+    lbl_cargo = ctk.CTkLabel(frame, text="Cargo:")
+    lbl_cargo.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_cargo = ctk.CTkEntry(frame, width=400)
+    txt_cargo.insert(0, funcionario['cargo'] if funcionario['cargo'] else "")
+    txt_cargo.pack(padx=20, pady=(0, 10))
+    
+    # Salário
+    lbl_salario = ctk.CTkLabel(frame, text="Salário (R$):")
+    lbl_salario.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_salario = ctk.CTkEntry(frame, width=400)
+    txt_salario.insert(0, str(funcionario['salario']) if funcionario['salario'] else "")
+    txt_salario.pack(padx=20, pady=(0, 10))
+    
+    # Observações
+    lbl_observacoes = ctk.CTkLabel(frame, text="Observações:")
+    lbl_observacoes.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_observacoes = ctk.CTkTextbox(frame, width=400, height=80)
+    txt_observacoes.insert("0.0", funcionario['observacoes'] if funcionario['observacoes'] else "")
+    txt_observacoes.pack(padx=20, pady=(0, 10))
+    
+    # Departamento
+    lbl_departamento = ctk.CTkLabel(frame, text="Departamento:")
+    lbl_departamento.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    departamentos = buscar_departamentos()
+    departamento_var = ctk.StringVar()
+    opcoes_departamento = [nome for _, nome in departamentos]
+    
+    if opcoes_departamento:
+        departamento_var.set(funcionario['departamento_nome'] if funcionario['departamento_nome'] else opcoes_departamento[0])
+    else:
+        opcoes_departamento = ["Nenhum departamento disponível"]
+        departamento_var.set(opcoes_departamento[0])
+    
+    dropdown_departamento = ctk.CTkOptionMenu(
+        frame, 
+        variable=departamento_var,
+        values=opcoes_departamento,
+        width=400
+    )
+    dropdown_departamento.pack(padx=20, pady=(0, 20))
+    
+    # Função para salvar alterações
+    def salvar_alteracoes():
+        # Validar campos
+        nome = txt_nome.get().strip()
+        email = txt_email.get().strip()
+        data_nascimento_br = txt_data_nascimento.get().strip()
+        cargo = txt_cargo.get().strip()
+        salario_str = txt_salario.get().strip().replace(',', '.')
+        observacoes = txt_observacoes.get("0.0", "end").strip()
+        departamento_nome = departamento_var.get()
+        
+        # Validação básica
+        if not nome:
+            exibir_erro("Erro", "O nome é obrigatório")
+            return
+        
+        if not email or '@' not in email:
+            exibir_erro("Erro", "O email é inválido")
+            return
+        
+        # Validar data de nascimento
+        if not data_nascimento_br:
+            exibir_erro("Erro", "A data de nascimento é obrigatória")
+            return
+        
+        data_nascimento = converter_data_para_banco(data_nascimento_br)
+        if not data_nascimento:
+            exibir_erro("Erro", "Data de nascimento inválida. Use o formato DD/MM/AAAA")
+            return
+        
+        # Validar salário
+        try:
+            salario = float(salario_str) if salario_str else 0
+            if salario < 0:
+                exibir_erro("Erro", "Salário não pode ser negativo")
+                return
+        except ValueError:
+            exibir_erro("Erro", "Salário inválido")
+            return
+        
+        # Buscar ID do departamento
+        departamento_id = None
+        if departamento_nome != "Nenhum departamento disponível":
+            for dep_id, dep_nome in departamentos:
+                if dep_nome == departamento_nome:
+                    departamento_id = dep_id
+                    break
+        
+        try:
+            conexao = criar_conexao_mysql()
+            if not conexao:
+                exibir_erro("Erro", "Não foi possível conectar ao banco de dados")
+                return
+                
+            cursor = conexao.cursor()
+            
+            # Verificar se já existe outro funcionário com este email
+            cursor.execute("SELECT COUNT(*) FROM funcionarios WHERE email = %s AND id != %s", (email, funcionario_id))
+            if cursor.fetchone()[0] > 0:
+                exibir_erro("Erro", "Já existe outro funcionário com este email")
+                return
+            
+            # Atualizar funcionário
+            cursor.execute("""
+                UPDATE funcionarios 
+                SET nome = %s, email = %s, data_nascimento = %s, cargo = %s, 
+                    salario = %s, observacoes = %s, departamento_id = %s
+                WHERE id = %s
+            """, (nome, email, data_nascimento, cargo, salario, observacoes, departamento_id, funcionario_id))
+            
+            conexao.commit()
+            cursor.close()
+            conexao.close()
+            
+            exibir_mensagem("Sucesso", "Funcionário atualizado com sucesso!")
+            
+            # Atualizar tabela
+            listar_funcionarios(tv_funcionarios)
+            
+            # Fechar janela
+            ao_fechar_janela()
+            
+        except Exception as e:
+            exibir_erro("Erro", f"Erro ao atualizar funcionário: {e}")
+    
+    # Botões
+    frame_botoes = ctk.CTkFrame(frame, fg_color="transparent")
+    frame_botoes.pack(pady=20)
+    
+    btn_salvar = ctk.CTkButton(
+        frame_botoes,
+        text="SALVAR ALTERAÇÕES",
+        command=salvar_alteracoes,
+        width=200,
+        height=40,
+        font=ctk.CTkFont(size=14, weight="bold"),
+        fg_color=("#4a98d3", "#1f538d"),
+        hover_color=("#3a7db5", "#174f7c")
+    )
+    btn_salvar.grid(row=0, column=0, padx=10)
+    
+    btn_cancelar = ctk.CTkButton(
+        frame_botoes,
+        text="Cancelar",
+        command=ao_fechar_janela,
+        width=120,
+        height=40,
+        fg_color="gray60",
+        hover_color="gray40"
+    )
+    btn_cancelar.grid(row=0, column=1, padx=10)
+
+def editar_departamento(departamento_id, tv_departamentos):
+    """
+    Abre uma janela para editar os dados de um departamento específico.
+    
+    Args:
+        departamento_id: ID do departamento a ser editado
+        tv_departamentos: TreeView para atualizar após a edição
+    """
+    global janelas_abertas
+    
+    # Verificar se já existe uma janela de edição aberta para este departamento
+    chave_janela = f"editar_departamento_{departamento_id}"
+    if chave_janela in janelas_abertas and janelas_abertas[chave_janela].winfo_exists():
+        janelas_abertas[chave_janela].lift()
+        return
+    
+    # Buscar dados atuais do departamento
+    try:
+        conexao = criar_conexao_mysql()
+        if not conexao:
+            exibir_erro("Erro", "Não foi possível conectar ao banco de dados")
+            return
+            
+        cursor = conexao.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM departamentos WHERE id = %s", (departamento_id,))
+        
+        departamento = cursor.fetchone()
+        if not departamento:
+            exibir_erro("Erro", "Departamento não encontrado")
+            return
+        
+        cursor.close()
+        conexao.close()
+    except Exception as e:
+        exibir_erro("Erro", f"Erro ao buscar dados do departamento: {e}")
+        return
+    
+    # Criar janela de edição
+    janela_edicao = ctk.CTkToplevel()
+    janela_edicao.title(f"Editar Departamento - {departamento['nome']}")
+    janela_edicao.geometry("450x400")
+    centralizar_janela(janela_edicao, 450, 400)
+    janela_edicao.grab_set()
+    janela_edicao.attributes("-topmost", True)
+    
+    # Registrar a janela
+    janelas_abertas[chave_janela] = janela_edicao
+    
+    def ao_fechar_janela():
+        if chave_janela in janelas_abertas:
+            del janelas_abertas[chave_janela]
+        janela_edicao.destroy()
+    
+    janela_edicao.protocol("WM_DELETE_WINDOW", ao_fechar_janela)
+    
+    # Frame principal
+    frame = ctk.CTkFrame(janela_edicao)
+    frame.pack(padx=20, pady=20, fill="both", expand=True)
+    
+    # Título
+    lbl_titulo = ctk.CTkLabel(
+        frame,
+        text="Editar Departamento",
+        font=ctk.CTkFont(size=18, weight="bold"),
+        text_color=("#4a98d3", "#1f538d")
+    )
+    lbl_titulo.pack(pady=(20, 20))
+    
+    # Campos de edição
+    # Nome
+    lbl_nome = ctk.CTkLabel(frame, text="Nome:")
+    lbl_nome.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_nome = ctk.CTkEntry(frame, width=350)
+    txt_nome.insert(0, departamento['nome'])
+    txt_nome.pack(padx=20, pady=(0, 10))
+    
+    # Descrição
+    lbl_descricao = ctk.CTkLabel(frame, text="Descrição:")
+    lbl_descricao.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_descricao = ctk.CTkTextbox(frame, width=350, height=120)
+    txt_descricao.insert("0.0", departamento['descricao'] if departamento['descricao'] else "")
+    txt_descricao.pack(padx=20, pady=(0, 20))
+    
+    # Função para salvar alterações
+    def salvar_alteracoes():
+        # Validar campos
+        nome = txt_nome.get().strip()
+        descricao = txt_descricao.get("0.0", "end").strip()
+        
+        if not nome:
+            exibir_erro("Erro", "O nome é obrigatório")
+            return
+        
+        try:
+            conexao = criar_conexao_mysql()
+            if not conexao:
+                exibir_erro("Erro", "Não foi possível conectar ao banco de dados")
+                return
+                
+            cursor = conexao.cursor()
+            
+            # Verificar se já existe outro departamento com este nome
+            cursor.execute("SELECT COUNT(*) FROM departamentos WHERE nome = %s AND id != %s", (nome, departamento_id))
+            if cursor.fetchone()[0] > 0:
+                exibir_erro("Erro", "Já existe outro departamento com este nome")
+                return
+            
+            # Atualizar departamento
+            cursor.execute("""
+                UPDATE departamentos 
+                SET nome = %s, descricao = %s
+                WHERE id = %s
+            """, (nome, descricao, departamento_id))
+            
+            conexao.commit()
+            cursor.close()
+            conexao.close()
+            
+            exibir_mensagem("Sucesso", "Departamento atualizado com sucesso!")
+            
+            # Atualizar tabela
+            listar_departamentos(tv_departamentos)
+            
+            # Fechar janela
+            ao_fechar_janela()
+            
+        except Exception as e:
+            exibir_erro("Erro", f"Erro ao atualizar departamento: {e}")
+    
+    # Botões
+    frame_botoes = ctk.CTkFrame(frame, fg_color="transparent")
+    frame_botoes.pack(pady=20)
+    
+    btn_salvar = ctk.CTkButton(
+        frame_botoes,
+        text="SALVAR ALTERAÇÕES",
+        command=salvar_alteracoes,
+        width=200,
+        height=40,
+        font=ctk.CTkFont(size=14, weight="bold"),
+        fg_color=("#4a98d3", "#1f538d"),
+        hover_color=("#3a7db5", "#174f7c")
+    )
+    btn_salvar.grid(row=0, column=0, padx=10)
+    
+    btn_cancelar = ctk.CTkButton(
+        frame_botoes,
+        text="Cancelar",
+        command=ao_fechar_janela,
+        width=120,
+        height=40,
+        fg_color="gray60",
+        hover_color="gray40"
+    )
+    btn_cancelar.grid(row=0, column=1, padx=10)
+
+def editar_usuario(usuario_id, tv_usuarios):
+    """
+    Abre uma janela para editar os dados de um usuário específico.
+    
+    Args:
+        usuario_id: ID do usuário a ser editado
+        tv_usuarios: TreeView para atualizar após a edição
+    """
+    global janelas_abertas
+    
+    # Verificar se já existe uma janela de edição aberta para este usuário
+    chave_janela = f"editar_usuario_{usuario_id}"
+    if chave_janela in janelas_abertas and janelas_abertas[chave_janela].winfo_exists():
+        janelas_abertas[chave_janela].lift()
+        return
+    
+    # Buscar dados atuais do usuário
+    try:
+        conexao = criar_conexao_mysql()
+        if not conexao:
+            exibir_erro("Erro", "Não foi possível conectar ao banco de dados")
+            return
+            
+        cursor = conexao.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM usuarios WHERE id = %s", (usuario_id,))
+        
+        usuario = cursor.fetchone()
+        if not usuario:
+            exibir_erro("Erro", "Usuário não encontrado")
+            return
+        
+        cursor.close()
+        conexao.close()
+    except Exception as e:
+        exibir_erro("Erro", f"Erro ao buscar dados do usuário: {e}")
+        return
+    
+    # Criar janela de edição
+    janela_edicao = ctk.CTkToplevel()
+    janela_edicao.title(f"Editar Usuário - {usuario['nome']}")
+    janela_edicao.geometry("450x500")
+    centralizar_janela(janela_edicao, 450, 500)
+    janela_edicao.grab_set()
+    janela_edicao.attributes("-topmost", True)
+    
+    # Registrar a janela
+    janelas_abertas[chave_janela] = janela_edicao
+    
+    def ao_fechar_janela():
+        if chave_janela in janelas_abertas:
+            del janelas_abertas[chave_janela]
+        janela_edicao.destroy()
+    
+    janela_edicao.protocol("WM_DELETE_WINDOW", ao_fechar_janela)
+    
+    # Frame principal
+    frame = ctk.CTkFrame(janela_edicao)
+    frame.pack(padx=20, pady=20, fill="both", expand=True)
+    
+    # Título
+    lbl_titulo = ctk.CTkLabel(
+        frame,
+        text="Editar Usuário",
+        font=ctk.CTkFont(size=18, weight="bold"),
+        text_color=("#4a98d3", "#1f538d")
+    )
+    lbl_titulo.pack(pady=(20, 20))
+    
+    # Campos de edição
+    # Nome Completo
+    lbl_nome = ctk.CTkLabel(frame, text="Nome Completo:")
+    lbl_nome.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_nome = ctk.CTkEntry(frame, width=350)
+    txt_nome.insert(0, usuario['nome'])
+    txt_nome.pack(padx=20, pady=(0, 10))
+    
+    # Nome de Usuário
+    lbl_username = ctk.CTkLabel(frame, text="Nome de Usuário:")
+    lbl_username.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_username = ctk.CTkEntry(frame, width=350)
+    txt_username.insert(0, usuario['username'])
+    txt_username.pack(padx=20, pady=(0, 10))
+    
+    # Nova Senha (opcional)
+    lbl_senha = ctk.CTkLabel(frame, text="Nova Senha (deixe em branco para manter a atual):")
+    lbl_senha.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_senha = ctk.CTkEntry(frame, width=350, show="•")
+    txt_senha.pack(padx=20, pady=(0, 10))
+    
+    # Confirmar Nova Senha
+    lbl_confirmar_senha = ctk.CTkLabel(frame, text="Confirmar Nova Senha:")
+    lbl_confirmar_senha.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    txt_confirmar_senha = ctk.CTkEntry(frame, width=350, show="•")
+    txt_confirmar_senha.pack(padx=20, pady=(0, 10))
+    
+    # Nível de Acesso
+    lbl_nivel_acesso = ctk.CTkLabel(frame, text="Nível de Acesso:")
+    lbl_nivel_acesso.pack(anchor="w", padx=20, pady=(10, 0))
+    
+    nivel_var = ctk.StringVar(value=usuario['nivel_acesso'])
+    
+    frame_radio = ctk.CTkFrame(frame, fg_color="transparent")
+    frame_radio.pack(fill="x", padx=20, pady=(0, 20))
+    
+    rb_user = ctk.CTkRadioButton(frame_radio, text="Usuário", variable=nivel_var, value="user")
+    rb_user.pack(side="left", padx=(0, 20))
+    
+    rb_admin = ctk.CTkRadioButton(frame_radio, text="Administrador", variable=nivel_var, value="admin")
+    rb_admin.pack(side="left")
+    
+    # Função para salvar alterações
+    def salvar_alteracoes():
+        # Validar campos
+        nome = txt_nome.get().strip()
+        username = txt_username.get().strip()
+        senha = txt_senha.get()
+        confirmar_senha = txt_confirmar_senha.get()
+        nivel_acesso = nivel_var.get()
+        
+        if not nome or not username:
+            exibir_erro("Erro", "Nome e nome de usuário são obrigatórios")
+            return
+        
+        if len(username) < 4:
+            exibir_erro("Erro", "O nome de usuário deve ter pelo menos 4 caracteres")
+            return
+        
+        # Verificar senha apenas se foi fornecida
+        if senha or confirmar_senha:
+            if len(senha) < 6:
+                exibir_erro("Erro", "A nova senha deve ter pelo menos 6 caracteres")
+                return
+            
+            if senha != confirmar_senha:
+                exibir_erro("Erro", "As senhas não coincidem")
+                return
+        
+        try:
+            conexao = criar_conexao_mysql()
+            if not conexao:
+                exibir_erro("Erro", "Não foi possível conectar ao banco de dados")
+                return
+                
+            cursor = conexao.cursor()
+            
+            # Verificar se já existe outro usuário com este username
+            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE username = %s AND id != %s", (username, usuario_id))
+            if cursor.fetchone()[0] > 0:
+                exibir_erro("Erro", "Nome de usuário já existe")
+                return
+            
+            # Verificar se é o último admin e está tentando alterar para user
+            if usuario['nivel_acesso'] == 'admin' and nivel_acesso == 'user':
+                cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nivel_acesso = 'admin'")
+                total_admins = cursor.fetchone()[0]
+                if total_admins <= 1:
+                    exibir_erro("Erro", "Não é possível alterar o último administrador para usuário comum")
+                    return
+            
+            # Preparar query de atualização
+            if senha:
+                # Atualizar com nova senha
+                senha_hash = criar_hash_senha(senha)
+                cursor.execute("""
+                    UPDATE usuarios 
+                    SET nome = %s, username = %s, senha_hash = %s, nivel_acesso = %s
+                    WHERE id = %s
+                """, (nome, username, senha_hash, nivel_acesso, usuario_id))
+            else:
+                # Atualizar sem alterar senha
+                cursor.execute("""
+                    UPDATE usuarios 
+                    SET nome = %s, username = %s, nivel_acesso = %s
+                    WHERE id = %s
+                """, (nome, username, nivel_acesso, usuario_id))
+            
+            conexao.commit()
+            cursor.close()
+            conexao.close()
+            
+            exibir_mensagem("Sucesso", "Usuário atualizado com sucesso!")
+            
+            # Atualizar tabela
+            listar_usuarios(tv_usuarios)
+            
+            # Fechar janela
+            ao_fechar_janela()
+            
+        except Exception as e:
+            exibir_erro("Erro", f"Erro ao atualizar usuário: {e}")
+    
+    # Botões
+    frame_botoes = ctk.CTkFrame(frame, fg_color="transparent")
+    frame_botoes.pack(pady=20)
+    
+    btn_salvar = ctk.CTkButton(
+        frame_botoes,
+        text="SALVAR ALTERAÇÕES",
+        command=salvar_alteracoes,
+        width=200,
+        height=40,
+        font=ctk.CTkFont(size=14, weight="bold"),
+        fg_color=("#4a98d3", "#1f538d"),
+        hover_color=("#3a7db5", "#174f7c")
+    )
+    btn_salvar.grid(row=0, column=0, padx=10)
+    
+    btn_cancelar = ctk.CTkButton(
+        frame_botoes,
+        text="Cancelar",
+        command=ao_fechar_janela,
+        width=120,
+        height=40,
+        fg_color="gray60",
+        hover_color="gray40"
+    )
+    btn_cancelar.grid(row=0, column=1, padx=10)
 
 # Iniciar aplicação quando o script for executado diretamente
 if __name__ == "__main__":

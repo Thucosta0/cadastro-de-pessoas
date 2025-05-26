@@ -1,123 +1,180 @@
-# Sistema de Cadastro de Pessoas
+# Sistema MIRO
 
-Um aplicativo simples para gerenciar pessoas em um banco de dados, com interface gráfica moderna.
+## Descrição
+Sistema de gerenciamento de recursos internos e organização, desenvolvido para controle de funcionários, departamentos e projetos.
 
-## O que este programa faz?
+## Características
+- Interface gráfica moderna com CustomTkinter
+- Sistema de autenticação de usuários
+- Gestão de funcionários
+- Gestão de departamentos
+- Gestão de projetos
+- Associação de funcionários a projetos
+- Controle de acessos por nível de usuário
+- Tema claro/escuro
 
-Com este programa você pode:
-- ✅ Adicionar novas pessoas ao banco de dados
-- 📝 Editar informações de pessoas já cadastradas
-- 🗑️ Apagar pessoas do banco de dados
-- 🔍 Buscar pessoas pelo nome, e-mail ou telefone
-- 🏷️ Filtrar pessoas por categorias (Cliente, Funcionário ou Admin)
-- 🌓 Usar o tema claro ou escuro conforme sua preferência
+## Estrutura do Banco de Dados
+O sistema utiliza MySQL como banco de dados, com a seguinte estrutura:
 
-## O que você precisa para usar?
+### Tabelas Principais
+- **departamentos**: Armazena os departamentos da empresa
+- **funcionarios**: Cadastro de funcionários
+- **projetos**: Cadastro de projetos
+- **funcionarios_projetos**: Associação entre funcionários e projetos
+- **contatos_funcionarios**: Contatos dos funcionários
+- **usuarios**: Usuários do sistema
 
-- Python 3.6 (https://www.python.org/downloads/)
-- Um servidor MySQL instalado e funcionando
-- As bibliotecas Python necessárias:
-- customtkinter (para a interface gráfica bonita)
-- mysql-connector-python (para conectar ao banco de dados)
+## Requisitos
+- Python 3.8 ou superior
+- MySQL 5.7 ou superior
+- Bibliotecas Python (ver `requirements.txt`)
 
-## Como instalar
+## Instalação
 
-### Passo 1: Instale o Python
-
-Se você ainda não tem o Python instalado:
-1. Baixe a versão mais recente do Python no (https://www.python.org/downloads/)
-2. Durante a instalação, marque a opção "Add Python to PATH"
-3. Conclua a instalação seguindo as instruções
-
-### Passo 2: Instale o MySQL
-
-1. Baixe o MySQL Community Server em (https://dev.mysql.com/downloads/mysql/)
-2. Siga o assistente de instalação
-3. Anote a senha que você definir para o usuário "root" (você precisará dela depois)
-
-### Passo 3: Instale as bibliotecas Python
-
-Abra o Prompt de Comando (CMD) ou PowerShell e digite:
-
-```
-pip install customtkinter mysql-connector-python
-
+### 1. Clone o repositório
+```bash
+git clone https://github.com/SEU_USUARIO/sistema-miro.git
+cd sistema-miro
 ```
 
-### Passo 4: Obtenha o programa
+### 2. Instale as dependências
+```bash
+pip install -r requirements.txt
+```
 
-1. Baixe o código deste programa para seu computador
-2. Descompacte em uma pasta de sua preferência
+### 3. Configure o banco de dados
 
-## Como usar o programa
+#### Opção A: Usando o script SQL completo
+1. Execute o script `database_schema.sql` no seu servidor MySQL:
+```sql
+mysql -u root -p < database_schema.sql
+```
 
-1. Abra o Prompt de Comando (CMD) ou PowerShell
-2. Navegue até a pasta onde você salvou o programa:
+#### Opção B: Usando o utilitário de configuração
+1. Execute o configurador:
+```bash
+python configurar_db.py
+```
 
-   ```
-   cd caminho/para/a/pasta
+### 4. Configure a conexão com o banco
+1. Copie o arquivo de exemplo:
+```bash
+cp config_db.example.json config_db.json
+```
 
-   ```
-3. Execute o aplicativo:
+2. Edite o arquivo `config_db.json` com suas credenciais:
+```json
+{
+    "host": "localhost",
+    "user": "root",
+    "password": "sua_senha_mysql",
+    "database": "sistema_miro"
+}
+```
 
-   ```
-   python app.py
-   
-   ```
+### 5. Execute o aplicativo
+```bash
+python app_miro.py
+```
 
-4. Na primeira execução, uma janela de configuração do MySQL aparecerá:
-   - **Host**: Normalmente é "127.0.0.1" ou "localhost"
-   - **Porta**: Normalmente é "3306"
-   - **Usuário**: Normalmente é "root"
-   - **Senha**: A senha que você criou durante a instalação do MySQL
-   - **Banco de Dados**: Pode deixar como "cadastro_pessoas"
+## Credenciais Padrão
+Após a instalação do banco de dados, use as seguintes credenciais para o primeiro acesso:
+- **Usuário**: admin
+- **Senha**: admin123
 
-## Como usar as funções do programa
+⚠️ **IMPORTANTE**: Altere a senha padrão após o primeiro login!
 
-### Adicionar uma nova pessoa
-1. Clique no botão "Adicionar Pessoa"
-2. Preencha os campos solicitados (nome é obrigatório)
-3. Escolha a categoria (Cliente, Funcionário ou Admin)
-4. Clique em "Salvar"
+## Funcionalidades
 
-### Editar uma pessoa
-1. Selecione a pessoa na tabela
-2. Clique no botão "Atualizar Cadastro"
-3. Altere os campos desejados
-4. Clique em "Salvar"
+### Gestão de Funcionários
+- Cadastro completo de funcionários
+- Associação a departamentos
+- Armazenamento de dados profissionais
+- Controle de contatos
 
-### Excluir uma pessoa
-1. Selecione a pessoa na tabela
-2. Clique no botão "Excluir Cadastro"
-3. Confirme a exclusão
+### Gestão de Departamentos
+- Criação e edição de departamentos
+- Visualização de departamentos
+- Associação com funcionários e projetos
 
-### Buscar uma pessoa
-1. Digite um termo na caixa de busca (parte do nome, email ou telefone)
-2. Clique no botão "Buscar" ou pressione Enter
+### Gestão de Projetos
+- Cadastro de projetos
+- Associação de funcionários a projetos
+- Controle de status e prazos
+- Visualização de membros do projeto
 
-### Filtrar por categoria
-1. Clique no menu suspenso de categorias
-2. Selecione a categoria desejada (Cliente, Funcionário, Admin ou Todas)
+### Administração de Usuários
+- Criação de contas de usuário
+- Definição de níveis de acesso
+- Gestão de permissões
 
-### Mudar o tema
-1. Clique no botão "Alternar Tema" para trocar entre claro e escuro
+## Estrutura do Projeto
+```
+sistema-miro/
+├── app_miro.py                 # Aplicativo principal
+├── configurar_db.py           # Utilitário de configuração do BD
+├── criar_acesso_direto.py     # Utilitário para criar usuário admin
+├── database_schema.sql        # Script SQL completo do banco
+├── requirements.txt           # Dependências Python
+├── config_db.example.json     # Exemplo de configuração do BD
+├── config_db.json            # Configuração do BD (ignorado pelo Git)
+├── README.md                 # Este arquivo
+└── .gitignore               # Arquivos ignorados pelo Git
+```
 
-## Estrutura do projeto
+## Banco de Dados
 
-O projeto é composto por apenas 3 arquivos principais:
+### Schema Completo
+O arquivo `database_schema.sql` contém:
+- Criação do banco de dados
+- Todas as tabelas necessárias
+- Índices para performance
+- Views para relatórios
+- Dados iniciais (departamentos e usuário admin)
+- Chaves estrangeiras com integridade referencial
 
-- **app.py**: Contém o código da interface gráfica bonita
-- **db.py**: Gerencia a conexão com o banco de dados
-- **db_config.json**: Arquivo criado automaticamente para guardar as configurações
+### Backup e Restauração
+Para fazer backup do banco:
+```bash
+mysqldump -u root -p sistema_miro > backup_sistema_miro.sql
+```
 
-## Sobre o banco de dados
+Para restaurar:
+```bash
+mysql -u root -p sistema_miro < backup_sistema_miro.sql
+```
 
-O sistema usa uma única tabela chamada "pessoas" com os seguintes campos:
-- **id**: Número único para cada pessoa (gerado automaticamente)
-- **nome**: Nome da pessoa (obrigatório)
-- **email**: Endereço de email
-- **telefone**: Número de telefone
-- **categoria**: Tipo de pessoa (Cliente, Funcionário ou Admin)
-- **data_criacao**: Data e hora em que o cadastro foi feito
+## Desenvolvimento
 
-©thucosta tweaks 2025 | Todos os direitos reservados
+### Contribuindo
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+### Estrutura de Branches
+- `main`: Branch principal (produção)
+- `develop`: Branch de desenvolvimento
+- `feature/*`: Branches para novas funcionalidades
+- `hotfix/*`: Branches para correções urgentes
+
+## Segurança
+- Senhas armazenadas com hash SHA-256
+- Controle de acesso por níveis de usuário
+- Validação de dados de entrada
+- Arquivo de configuração do BD ignorado pelo Git
+- Integridade referencial no banco de dados
+
+## Licença
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## Suporte
+Para suporte, abra uma issue no GitHub ou entre em contato através do email: suporte@sistema-miro.com
+
+## Changelog
+### v1.0.0
+- Versão inicial do sistema
+- Gestão completa de funcionários, departamentos e projetos
+- Sistema de autenticação
+- Interface gráfica moderna

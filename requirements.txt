@@ -1,0 +1,27 @@
+# Dependências do Sistema MIRO
+# Interface gráfica moderna
+customtkinter>=5.2.0
+
+# Conexão com banco de dados MySQL
+mysql-connector-python>=8.0.33
+
+# Manipulação de imagens
+Pillow>=10.0.0
+
+# Caixas de mensagem customizadas
+CTkMessagebox>=2.5
+
+# Utilitários para data e hora (já incluído no Python padrão)
+# datetime
+
+# Utilitários para hash (já incluído no Python padrão)
+# hashlib
+
+# JSON (já incluído no Python padrão)
+# json
+
+# Regex (já incluído no Python padrão)
+# re
+
+# Sistema operacional (já incluído no Python padrão)
+# os 
